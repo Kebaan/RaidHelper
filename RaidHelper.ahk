@@ -307,11 +307,15 @@ confirmEnergy() {
     if (clickIfPresent(760, 700, 1160, 820, 0xAA6E00)) {
         debug("confirm energy")
         Sleep, 150
+    } else {
+        trace("confirm energy not present")
     }
 }
 
 masteries() { 
-    if (isResultScreen() and isPresent(300, 400, 1600, 475, 0x10151A)) {
+    if (isResultScreen() and (isPresent(300, 400, 1600, 475, 0xFF6132)
+        or isPresent(300, 400, 1600, 475, 0xC9A98F)
+        or isPresent(300, 400, 1600, 475, 0x739E10))) {
         
         debug("replaying masteries")
         replay()
