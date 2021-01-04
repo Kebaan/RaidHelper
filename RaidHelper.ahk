@@ -204,24 +204,30 @@ commitDebugMsg() {
 ;--------- Raid functions --------------------
 
 runFarm(Runs) {
-    Loop % Runs {
-        debug("farming round " . A_index)
+    currentRun := 0
+    Loop {
         GuiControlGet, FarmOn
         GuiControlGet, FarmTime
-        If (not FarmOn) {
+        if(not FarmOn or currentRun == Runs) {
+            trace("not running round FarmOn " . FarmOn . " currentRun " . currentRun . " Runs " . Runs)
             break
         }
         
         InitialPos := activate()
         
-        sellItemIfPresent(685, 300, 970, 390, 0xCA307B)
-        
-        replay()
-        confirmEnergy()
-        replay()
-        
+        if(isResultScreen()) {
+            currentRun += 1
+            debug("running " . currentRun . "/" . Runs . " farm round")
+            sellItemIfPresent(685, 300, 970, 390, 0xCA307B)
+
+            replay()
+            confirmEnergy()
+            replay()
+        } else {
+            trace("not running round since we are not on resultscreen yet")
+        }
         deactivate(InitialPos.X, InitialPos.Y, InitialPos.Title, 0)
-        
+
         Sleep, % (FarmTime + 5) * 1000
     }
     toggleFarm(false)
