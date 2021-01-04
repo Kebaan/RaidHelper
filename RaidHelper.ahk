@@ -3,6 +3,9 @@ SetTitleMatchMode, 2
 #persistent
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 global WindowTitle := "DR3AM RAID Helper @Kebaan"
+global DebugMsg = ""
+global Width
+global Height
 
 configFile = raidhelper_config.ini
 
@@ -64,6 +67,7 @@ Gui, Add, Text, x10 y30 w320, replay: send 'r', won't do anything if replay isn'
 
 Gui, Tab, Debug
 Gui, Add, Edit, r20 +ReadOnly vDebugLog w320, 
+Gui, Add, CheckBox, x140 y300 w90 h30 gDebug vTraceOn, Trace
 
 Gui, Show, x431 y353 h335 w350, %WindowTitle%
 
@@ -138,6 +142,11 @@ Auto:
     toggleAuto(AutoOn)
     Return
 
+Debug:
+    Gui, Submit, NoHide
+    debug("TraceOn " . TraceOn)
+    Return
+
 toggleFarm(Val = "") {
     GuiControlGet, FarmOn
     NewValue := % (Val == "" ? !FarmOn : Val)
@@ -165,9 +174,29 @@ toggleAuto(Val = "") {
 }
 
 debug(Msg) {
+    global DebugMsg .= Msg . "`n"
+}
+
+trace(Msg) {
+    GuiControlGet, TraceOn
+    if(TraceOn) {
+        debug(Msg)
+    }
+}
+
+resetDebugMsg() {
+    global DebugMsg = ""
+}
+
+commitDebugMsg() {
+    if(DebugMsg == "") {
+        return
+    }
+
     GuiControlGet, DebugLog
     FormatTime, MyTime,, HH:mm:ss
-    GuiControl,, DebugLog, %DebugLog%%MyTime%: %Msg%`n
+    WinGetPos, X, Y, Width, Height, Raid: Shadow Legends
+    GuiControl,, DebugLog, %DebugLog%%MyTime%: Running actions on window with width %Width% and height  %Height%`n%DebugMsg%`n
     ;ControlSend, Edit6, ^{END}
     SendMessage, 0x115, 7, 0, Edit6, %WindowTitle% ;0x115 is WM_VSCROLL ; 7 is SB_BOTTOM
 }
@@ -251,6 +280,8 @@ next() {
     if (clickIfPresent(1600, 900, 1850, 1100, 0xAA6E00)) {
         debug("clicking next")
         Sleep, 150
+    } else {
+        trace("next not present")
     }
 }
 
@@ -258,6 +289,8 @@ sell() {
     if (clickIfPresent(980, 750, 1380, 900, 0xAA6E00)) {
         debug("sell item")
         Sleep, 150
+    } else {
+        trace("sell not present")
     }
 }
 
@@ -265,6 +298,8 @@ confirmSell() {
     if (clickIfPresent(980, 530, 1380, 670, 0xAA6E00)) {
         debug("confirm sell")
         Sleep, 150
+    } else {
+        trace("confirm sell not present")
     }
 }
 
@@ -287,6 +322,8 @@ arenaBattle() {
     if (clickIfPresent(1600, 300, 1850, 1100, 0xAA6E00)) {
         debug("clicking arena battle")
         Sleep, 150
+    } else {
+        trace("arena battle not present")
     }
 }
 
@@ -294,6 +331,8 @@ start() {
     if (clickIfPresent(1600, 900, 1850, 1100, 0xAA6E00)) {
         debug("clicking start")
         Sleep, 150
+    } else {
+        trace("start not present")
     }
 }
 
@@ -301,6 +340,8 @@ continue() {
     if (clickIfPresent(556, 932, 1369, 1000, 0xFFE87D)) {
         debug("clicking continue / start battle")
         Sleep, 150
+    } else {
+        trace("continue not present")
     }
 }
 
@@ -310,6 +351,8 @@ activateAuto() {
     if (present) {
         debug("activating auto")
         ControlSend, , t, Raid: Shadow Legends
+    } else {
+        trace("auto was not activated")
     }
 }
 
@@ -320,6 +363,8 @@ deactivate(X, Y, Title, MoveMouse = true, SleepTime = 2000) {
     }
     BlockInput, Off
     BlockInput, MouseMoveOff
+    commitDebugMsg()
+    resetDebugMsg()
     Sleep, % SleepTime
 }
 
@@ -340,10 +385,24 @@ click(X, Y) {
 }
 
 isResultScreen() {
-    return isPresent(900, 5, 1000, 70, 0x29DAFD)
-        or isPresent(900, 5, 1000, 70, 0xE6286A)
-        or isPresent(900, 5, 1000, 70, 0xD22451)
-        or isPresent(900, 5, 1000, 70, 0x1EC0F6) 
+    if(isPresent(900, 5, 1000, 70, 0x29DAFD)) {
+        debug("is result screen due to " . 0x29DAFD)
+        return true
+    }
+    if(isPresent(900, 5, 1000, 70, 0xE6286A)) {
+        debug("is result screen due to " . 0xE6286A)
+        return true
+    }
+    if(isPresent(900, 5, 1000, 70, 0xD22451)) {
+        debug("is result screen due to " . 0xD22451)
+        return true
+    }
+    if(isPresent(900, 5, 1000, 70, 0x1EC0F6)) {
+        debug("is result screen due to " . 0x1EC0F6)
+        return true
+    }
+    trace("did not recognize resultscreen")
+    return false
 }
 
 clickIfPresent(X1, Y1, X2, Y2, Color) {
@@ -358,14 +417,17 @@ clickIfPresent(X1, Y1, X2, Y2, Color) {
 }
 
 isPresent(X1, Y1, X2, Y2, Color) {
-    WinGetActiveStats, Title, Width, Height, X, Y
-    debug("Width " . Width . " Height " . Height)
-    PixelSearch, OutputVarX, OutputVarY, Width * X1/1920, Height * Y1/1080, Width * X2/1920, Height * Y2/1080, Color, 3, FAST RGB
+    TranslatedX1 := Round(Width * X1/1936)
+    TranslatedY1 := Round(Height * Y1/1056)
+    TranslatedX2 := Round(Width * X2/1936)
+    TranslatedY2 := Round(Height * Y2/1056)
+    PixelSearch, OutputVarX, OutputVarY, TranslatedX1, TranslatedY1, TranslatedX2, TranslatedY2, Color, 3, FAST RGB
     if (ErrorLevel = 0) {
-        debug("Found " . Color . " at (" . OutputVarX . ";" . OutputVarY . ")")
+        trace("Found " . Color . " at (" . OutputVarX . ";" . OutputVarY . ")")
         
         return {X: OutputVarX, Y: OutputVarY}
     }
+    trace("Couldn't find " . Color . " at X [" . TranslatedX1 . ";" . TranslatedX2 . "] Y [" . TranslatedY1 . ";" . TranslatedY2 . "]")
     return false
 }
 
