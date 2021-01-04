@@ -232,7 +232,7 @@ runAuto() {
     }
 
     deactivate(InitialPos.X, InitialPos.Y, InitialPos.Title, 0) 
-    Sleep, AutoFrequency
+    Sleep, AutoFrequency * 1000
 }
 
 sellItemIfPresent(X1, Y1, X2, Y2, Color) {
