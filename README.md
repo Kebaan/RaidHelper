@@ -1,5 +1,5 @@
 # RaidHelper
-AutoHotKey GUI to help automate some things in Raid
+AutoHotKey GUI to help automate some things in Raid: Shadow Legends
 
 It looks for colors in the Raid window (Plariums desktop app), and clicks them. E.g. looks for the color of the different buttons to see if they are present etc.
 
